@@ -63,23 +63,23 @@ with mp_face_mesh.FaceMesh(
     image = cv2.flip(image, 1)
     results = face_mesh.process(image)
 
-    # 検出された顔のメッシュをカメラ画像の上に描画
     image.flags.writeable = True
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
     if use_filter and results.multi_face_landmarks:
       for face_landmarks in results.multi_face_landmarks:
-        image = remove_beard(image, face_landmarks)
+        out_image = remove_beard(image, face_landmarks)
 
     # 処理した画像をウィンドウと仮想カメラに出力
-    cv2.imshow('MediaPipe Face Mesh', image)
-    v_cam.send(image)
+    cv2.imshow('MediaPipe Face Mesh', out_image)
+    v_cam.send(out_image)
 
-    if cv2.waitKey(10) & 0xFF == 27:
+    key = cv2.waitKey(5)
+    if key & 0xFF == 27:
       break
 
     # スペースキーでフィルタの有効を切り替える
-    if cv2.waitKey(10) & 0xFF == ord(' '):
+    if key & 0xFF == ord(' '):
       use_filter = not use_filter
 
     # ウィンドウが閉じられたら終了
