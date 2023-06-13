@@ -70,9 +70,13 @@ with mp_face_mesh.FaceMesh(
       for face_landmarks in results.multi_face_landmarks:
         out_image = remove_beard(image, face_landmarks)
 
-    # 処理した画像をウィンドウと仮想カメラに出力
+    # 処理した画像をウィンドウに表示
     cv2.imshow('MediaPipe Face Mesh', out_image)
-    v_cam.send(out_image)
+
+    # 仮想カメラに出力する
+    # そのままだと色が変なのでrgbチャネルをbgrに変換
+    color_inversed_output_imgage = cv2.cvtColor(out_image, cv2.COLOR_RGB2BGR)
+    v_cam.send(color_inversed_output_imgage)
 
     key = cv2.waitKey(5)
     if key & 0xFF == 27:
