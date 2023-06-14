@@ -5,6 +5,10 @@ import pyvirtualcam
 from face_mesh_point_idxes import beard_point_idxes
 from face_mesh_point_idxes import mouse_point_idxes
 
+WIDTH = 640
+HEIGHT = 360
+FILTER_CNT = 4
+
 def remove_beard(src_image, face_landmarks):
     width = src_image.shape[1]
     height = src_image.shape[0]
@@ -30,9 +34,10 @@ def remove_beard(src_image, face_landmarks):
     beard_mask_inverse = cv2.bitwise_not(beard_mask)
 
     # 全体をぼかしたものの一部をソース画像に上書きする
-    blur_strength = 21
-    blurred_image = cv2.GaussianBlur(src_image, (blur_strength, blur_strength), 0)
-    return cv2.bitwise_and(blurred_image, beard_mask) + cv2.bitwise_and(image, beard_mask_inverse)
+    filtered_image = src_image
+    for i in range(FILTER_CNT):
+      filtered_image = cv2.bilateralFilter(filtered_image, 8, sigmaColor=100, sigmaSpace=100)
+    return cv2.bitwise_and(filtered_image, beard_mask) + cv2.bitwise_and(image, beard_mask_inverse)
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -41,12 +46,12 @@ mp_face_mesh = mp.solutions.face_mesh
 # Webカメラから入力
 drawing_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
 cap = cv2.VideoCapture(0)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 360)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
 use_filter = True
 
 # 仮想カメラを作る
-v_cam = pyvirtualcam.Camera(width=640, height=360, fps=30)
+v_cam = pyvirtualcam.Camera(width=WIDTH, height=HEIGHT, fps=30)
 
 with mp_face_mesh.FaceMesh(
     max_num_faces=2,
@@ -68,15 +73,15 @@ with mp_face_mesh.FaceMesh(
 
     if use_filter and results.multi_face_landmarks:
       for face_landmarks in results.multi_face_landmarks:
-        out_image = remove_beard(image, face_landmarks)
+        image = remove_beard(image, face_landmarks)
 
     # 処理した画像をウィンドウに表示
-    cv2.imshow('MediaPipe Face Mesh', out_image)
+    cv2.imshow('MediaPipe Face Mesh', image)
 
     # 仮想カメラに出力する
     # そのままだと色が変なのでrgbチャネルをbgrに変換
-    color_inversed_output_imgage = cv2.cvtColor(out_image, cv2.COLOR_RGB2BGR)
-    v_cam.send(color_inversed_output_imgage)
+    color_inversed_imgage = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    v_cam.send(color_inversed_imgage)
 
     key = cv2.waitKey(5)
     if key & 0xFF == 27:
